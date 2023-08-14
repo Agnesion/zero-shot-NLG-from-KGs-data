@@ -38,18 +38,27 @@ filtered.data$First.Distractor.Triple.Annotation <- NULL
 filtered.data$Second.Distractor.Triple <- NULL
 filtered.data$Second.Distractor.Triple.Annotation <- NULL
 
-get.triple.annotation <- function(row, index) {
+get.triple.annotation <- function(single.row, index) {
   column.prefix = "Answer.statement"
   
   if (index < 0) {
     column.prefix = "Answer.statement."
+    index = -1 * index
   }
   
-  value.present <- row[, paste(column.prefix, index, ".expressed", sep = "")]
-  value.absent <- row[, paste(column.prefix, index, ".not.expressed", sep = "")]
-  value.hallucinated <- row[, paste(column.prefix, index, ".hallucinated", sep = "")]
+  value.present <- single.row[, paste(column.prefix, index, ".expressed", sep = "")]
+  value.absent <- single.row[, paste(column.prefix, index, ".not.expressed", sep = "")]
+  value.hallucinated <- single.row[, paste(column.prefix, index, ".hallucinated", sep = "")]
   
-  return("???")
+  if (value.present == "true") {
+    return("present")
+  } else if (value.absent == "true") {
+    return("absent")
+  } else if (value.hallucinated == "true") {
+    return("hallucinated")
+  } else {
+    stop(paste("Couldn't find a good annotation for index", index, "of row", single.row))
+  }
 }
 
 # There's probably a better way to do this than iterating but we only have to do it once.
@@ -82,3 +91,8 @@ for (line.index in 1:nrow(filtered.data)) {
   filtered.data[line.index, "Second.Distractor.Triple"] <- json.triples[json.triples$index == -2, "text"]
   filtered.data[line.index, "Second.Distractor.Triple.Annotation"] <- get.triple.annotation(filtered.data[line.index, ], -2)
 }
+
+# Output the resulting file.
+# We intentionally keep the JSON column and the various annotation columns for completeness even though we interpreted
+# them above.
+write.csv(filtered.data, "mechanical_turk_data_cleaned.csv", row.names = FALSE)
